@@ -5,15 +5,18 @@ const PORT = process.env.PORT;
 
 
 const AuthenticationService = require('./services/authentication_service');
+const authentication_routes = require("./routes/authentication_routes");
 
 
 
 
 
-app.get('/', (req,res )=>{
-    res.send("varificaition response")
 
-})
+app.use(express.json());
+app.use(
+    "/",
+    authentication_routes
+)
 
 
 //start server

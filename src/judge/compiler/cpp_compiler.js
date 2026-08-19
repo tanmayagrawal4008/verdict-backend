@@ -6,6 +6,12 @@ const dockerRunner = require("../docker/docker_runner");
 
 class CppCompiler {
 
+    async cleanup(workDir) {
+        if (workDir) {
+            await fs.rm(workDir, { recursive: true, force: true });
+        }
+    }
+
     async compile(sourceCode) {
 
         const submissionId = crypto.randomUUID();
@@ -57,6 +63,8 @@ class CppCompiler {
 
             if (!result.success) {
 
+                await this.cleanup(workDir);
+
                 return {
                     success: false,
                     verdict: "COMPILATION_ERROR",
@@ -74,6 +82,8 @@ class CppCompiler {
             };
 
         } catch (error) {
+
+            await this.cleanup(workDir);
 
             return {
                 success: false,

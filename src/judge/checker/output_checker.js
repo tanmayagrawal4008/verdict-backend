@@ -2,8 +2,8 @@ class OutputChecker {
 
     check(actualOutput, expectedOutput) {
 
-        const actual = actualOutput.trim();
-        const expected = expectedOutput.trim();
+        const actual = String(actualOutput ?? "").trim();
+        const expected = String(expectedOutput ?? "").trim();
 
         if (actual === expected) {
 

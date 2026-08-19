@@ -1,46 +1,28 @@
 const AuthenticationService = require("../services/authentication_service");
+const { HttpError } = require("./http_error");
 
 const authenticationService = new AuthenticationService();
-class AuthenticaionMiddleware {
-  async varify_access_token(req, res, next) {
+
+class AuthenticationMiddleware {
+  async verifyAccessToken(req, res, next) {
     try {
-      const auth_header = req.headers.authorization;
-      if (!authHeader) {
-        return res.status(401).json({
-          message: "Access token required",
-        });
+      const authorization = req.headers.authorization;
+      if (!authorization) {
+        throw new HttpError(401, "Access token is required");
       }
 
-      const [scheme, token] = authHeader.split(" ");
-
+      const [scheme, token] = authorization.split(" ");
       if (scheme !== "Bearer" || !token) {
-        return res.status(401).json({
-          message: "Invalid authorization header",
-        });
+        throw new HttpError(401, "Authorization header must use Bearer token");
       }
 
-      console.log(auth_header);
-
-      const decoded = await authenticationService.varify_auth_token(token);
-      req.user = decoded;
-
-      next();
-
+      req.user = await authenticationService.varify_auth_token(token);
+      return next();
     } catch (error) {
-
-         return res.status(401).json({
-            message: "Invalid or expired access token"
-        });
+      error.statusCode = 401;
+      return next(error);
     }
-
   }
-
-
-
-
-
 }
 
-
-
-module.exports = AuthenticaionMiddleware;
+module.exports = AuthenticationMiddleware;

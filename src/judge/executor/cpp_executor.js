@@ -9,6 +9,10 @@ class CppExecutor {
         memoryLimit
     }) {
 
+        const normalizedMemoryLimit = Number.isFinite(memoryLimit)
+            ? `${memoryLimit}m`
+            : memoryLimit;
+
         const result = await dockerRunner.run({
 
             image: "judge-cpp",
@@ -21,8 +25,11 @@ class CppExecutor {
 
             timeout: timeLimit,
 
-            memoryLimit, 
-            input
+            memoryLimit: normalizedMemoryLimit,
+            input,
+            readOnlyWorkspace: true,
+            readOnlyRoot: true,
+            runAsNonRoot: true
         });
 
         if (!result.success) {

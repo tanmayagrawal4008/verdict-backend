@@ -1,5 +1,27 @@
 const pool = require("../db");
 
+
+
+
+
+// ------ schema --------
+/*
+                                               Table "public.users"
+   Column   |            Type             | Collation | Nullable |                Default
+------------+-----------------------------+-----------+----------+----------------------------------------
+ user_id    | integer                     |           | not null | nextval('users_user_id_seq'::regclass)
+ username   | character varying(20)       |           |          |
+ email      | character varying(255)      |           |          |
+ password   | character varying(255)      |           |          |
+ created_at | timestamp without time zone |           | not null | now()
+ updated_at | timestamp without time zone |           | not null | now()
+Indexes:
+    "users_pkey" PRIMARY KEY, btree (user_id)
+Referenced by:
+    TABLE "problems" CONSTRAINT "problems_created_by_fkey" FOREIGN KEY (created_by) REFERENCES users(user_id) ON DELETE SET NULL
+    TABLE "submissions_with_problem" CONSTRAINT "submissions_with_problem_submitted_by_fkey" FOREIGN KEY (submitted_by) REFERENCES users(user_id)
+    TABLE "testcases" CONSTRAINT "testcases_created_by_fkey" FOREIGN KEY (created_by) REFERENCES users(user_id)
+*/
 const create_user = async (username, email, password) => {
   const query = `
         INSERT INTO users(username, email, password)
@@ -14,7 +36,7 @@ const update_user_password = async (id, newPassword) => {
   const query = `
         UPDATE users
         SET password = $2
-        WHERE id = $1
+        WHERE user_id = $1
         RETURNING user_id, username,  updated_at;
     `;
 
@@ -25,7 +47,7 @@ const update_user_password = async (id, newPassword) => {
 const delete_user = async (id) => {
   const query = `
         DELETE FROM users
-        WHERE id = $1
+        WHERE user_id = $1
         RETURNING user_id, username;
     
     `;

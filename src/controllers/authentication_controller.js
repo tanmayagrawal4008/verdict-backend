@@ -1,89 +1,44 @@
 const AuthenticationService = require("../services/authentication_service");
+const { HttpError } = require("../middlewares/http_error");
+const { sendSuccess } = require("./response");
 
 const authenticationService = new AuthenticationService();
 
-class AuthenticationController{
-    async register(req, res){
-        try {
-
-
-            
-            const username = req.body.username;
-            const email = req.body.email;
-            const password = req.body.password;
-
-            if(!username || !email || !password){
-                return res.status(409).json({
-                    error : "invalid request"
-                })
-            }
-            const result = await authenticationService.register(username, email, password);
-            return res.status(201).json({
-                message : "user registered successfully",
-                data : result
-            })
-            
-        } catch (error) {
-
-            console.error(error);
-            return res.status(error.statusCode).json({
-                message : error.message
-            })
-        }
+class AuthenticationController {
+  async register(req, res) {
+    const { username, email, password } = req.body || {};
+    if (!username || !email || !password) {
+      throw new HttpError(400, "username, email and password are required");
     }
 
+    const user = await authenticationService.register(username, email, password);
+    return sendSuccess(res, 201, "User registered successfully", user);
+  }
 
-    async enter(req, res){
-        try {
-            const email = req.body.email;
-            const password = req.body.password;
-            const result = await authenticationService.enter(email, password);
-            return res.status(201).json({
-                message : "user entered successfully",
-                data : result
-            })
-        } catch (error) {
-            console.error(error);
-            return res.status(error.statusCode).json({
-                message : error.message
-            })
-        }
+  async login(req, res) {
+    const { email, password } = req.body || {};
+    if (!email || !password) {
+      throw new HttpError(400, "email and password are required");
     }
 
-    async refresh(req, res){
-        try {
-            const refresh_token = req.headers.refresh_token;
-            const result = await authenticationService.refresh(refresh_token);
-            res.status(201).json({
-                message : "access token generated successfully",
-                data :  result
-            })
+    const tokens = await authenticationService.enter(email, password);
+    return sendSuccess(res, 200, "Login successful", tokens);
+  }
 
-
-        } catch (error) {
-            console.log(error);
-            return res.status(error.statusCode).json({
-                error : error
-            }
-            )
-        }
+  async refresh(req, res) {
+    const refreshToken = req.body?.refresh_token || req.headers.refresh_token;
+    if (!refreshToken) {
+      throw new HttpError(400, "refresh_token is required");
     }
 
-    async logout(req, res){
-        try {
-            const email = req.user.email
-            const result = authenticationService.logout(email);
-            
-        } catch (error) {
-            console.log(error);
-            return res.status(500).json({
-                message : "internal server error, not logged out"
-            })
-        }
-    }
+    const token = await authenticationService.refresh(refreshToken);
+    return sendSuccess(res, 200, "Access token generated successfully", token);
+  }
 
-
-
+  async logout(req, res) {
+    const result = await authenticationService.logout(req.user.user_id);
+    return sendSuccess(res, 200, result.message);
+  }
 }
 
 module.exports = AuthenticationController;

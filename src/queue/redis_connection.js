@@ -7,7 +7,7 @@ const redisConnection = new IORedis({
 })
 
 
-redisConnection.on("connect ", ()=>{
+redisConnection.on("connect", ()=>{
     console.log("redis connected");
 })
 

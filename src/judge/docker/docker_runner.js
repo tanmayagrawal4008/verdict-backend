@@ -9,7 +9,10 @@ class DockerRunner {
         timeout = 2000,
         memoryLimit = "256m",
         networkDisabled = true,
-        input = ""
+        input = "",
+        readOnlyWorkspace = false,
+        readOnlyRoot = false,
+        runAsNonRoot = false
     }) {
 
         const dockerArgs = [
@@ -22,12 +25,29 @@ class DockerRunner {
             "--cpus",
             "1",
 
+            "--pids-limit",
+            "64",
+
+            "--cap-drop",
+            "ALL",
+
+            "--security-opt",
+            "no-new-privileges",
+
+            ...(readOnlyRoot
+                ? ["--read-only", "--tmpfs", "/tmp:rw,nosuid,nodev,noexec,size=16m"]
+                : []),
+
+            ...(runAsNonRoot
+                ? ["--user", "65534:65534"]
+                : []),
+
             ...(networkDisabled
                 ? ["--network", "none"]
                 : []),
 
             "-v",
-            `${workDir}:/workspace`,
+            `${workDir}:/workspace${readOnlyWorkspace ? ":ro" : ""}`,
 
             image,
 
@@ -36,7 +56,7 @@ class DockerRunner {
 
         return new Promise((resolve) => {
 
-            const process = spawn(
+            const child = spawn(
                 "docker",
                 dockerArgs
             );
@@ -45,15 +65,21 @@ class DockerRunner {
             let stderr = "";
             let finished = false;
 
+            const finish = (result) => {
+                if (finished) return;
+                finished = true;
+                clearTimeout(timer);
+                resolve(result);
+            };
+
             const timer = setTimeout(() => {
 
                 if (finished) return;
 
-                finished = true;
+                child.kill("SIGTERM");
+                setTimeout(() => child.kill("SIGKILL"), 1000).unref();
 
-                process.kill("SIGTERM");
-
-                resolve({
+                finish({
                     success: false,
                     status: "TIME_LIMIT_EXCEEDED",
                     stdout,
@@ -63,14 +89,14 @@ class DockerRunner {
             }, timeout);
 
 
-            process.stdout.on("data", (data) => {
+            child.stdout.on("data", (data) => {
 
                 stdout += data.toString();
 
             });
 
 
-            process.stderr.on("data", (data) => {
+            child.stderr.on("data", (data) => {
 
                 stderr += data.toString();
 
@@ -79,21 +105,17 @@ class DockerRunner {
 
             // Send input to Docker container
 
-            process.stdin.write(input);
-            process.stdin.end();
+            child.stdin.on("error", () => {});
+            child.stdin.end(String(input ?? ""));
 
 
-            process.on("close", (code) => {
+            child.on("close", (code) => {
 
                 if (finished) return;
 
-                finished = true;
-
-                clearTimeout(timer);
-
                 if (code === 0) {
 
-                    resolve({
+                    finish({
                         success: true,
                         stdout,
                         stderr
@@ -101,7 +123,7 @@ class DockerRunner {
 
                 } else {
 
-                    resolve({
+                    finish({
                         success: false,
                         status: "RUNTIME_ERROR",
                         stdout,
@@ -113,15 +135,11 @@ class DockerRunner {
             });
 
 
-            process.on("error", (error) => {
+            child.on("error", (error) => {
 
                 if (finished) return;
 
-                finished = true;
-
-                clearTimeout(timer);
-
-                resolve({
+                finish({
                     success: false,
                     status: "RUNTIME_ERROR",
                     stdout,

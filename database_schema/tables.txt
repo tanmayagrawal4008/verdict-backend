@@ -1,0 +1,144 @@
+                   List of tables
+ Schema |           Name           | Type  | Owner
+--------+--------------------------+-------+--------
+ public | problems                 | table | tanmay
+ public | submission_on_testcase   | table | tanmay
+ public | submissions_with_problem | table | tanmay
+ public | testcases                | table | tanmay
+ public | users                    | table | tanmay
+(5 rows)
+
+
+
+
+
+
+                                           Table "public.users"
+   Column   |            Type             | Collation | Nullable |                Default
+------------+-----------------------------+-----------+----------+----------------------------------------
+ user_id    | integer                     |           | not null | nextval('users_user_id_seq'::regclass)
+ username   | character varying(20)       |           |          |
+ email      | character varying(255)      |           |          |
+ password   | character varying(255)      |           |          |
+ created_at | timestamp without time zone |           | not null | now()
+ updated_at | timestamp without time zone |           | not null | now()
+Indexes:
+    "users_pkey" PRIMARY KEY, btree (user_id)
+Referenced by:
+    TABLE "problems" CONSTRAINT "problems_created_by_fkey" FOREIGN KEY (created_by) REFERENCES users(user_id) ON DELETE SET NULL
+    TABLE "submissions_with_problem" CONSTRAINT "submissions_with_problem_submitted_by_fkey" FOREIGN KEY (submitted_by) REFERENCES users(user_id)
+    TABLE "testcases" CONSTRAINT "testcases_created_by_fkey" FOREIGN KEY (created_by) REFERENCES users(user_id)
+
+
+
+
+
+
+
+                                                  Table "public.problems"
+     Column     |            Type             | Collation | Nullable |                   Default
+----------------+-----------------------------+-----------+----------+----------------------------------------------
+ problem_id     | bigint                      |           | not null | nextval('problems_problem_id_seq'::regclass)
+ title          | character varying(255)      |           | not null |
+ difficulty     | integer                     |           |          |
+ time_limit     | integer                     |           | not null |
+ memory_limit   | integer                     |           | not null |
+ created_by     | bigint                      |           |          |
+ statement      | text                        |           | not null |
+ input_formate  | text                        |           |          |
+ output_formate | text                        |           |          |
+ constraints    | text                        |           |          |
+ created_at     | timestamp without time zone |           | not null | CURRENT_TIMESTAMP
+ updated_at     | timestamp without time zone |           | not null | CURRENT_TIMESTAMP
+Indexes:
+    "problems_pkey" PRIMARY KEY, btree (problem_id)
+Foreign-key constraints:
+    "problems_created_by_fkey" FOREIGN KEY (created_by) REFERENCES users(user_id) ON DELETE SET NULL
+Referenced by:
+    TABLE "submissions_with_problem" CONSTRAINT "submissions_with_problem_problem_id_fkey" FOREIGN KEY (problem_id) REFERENCES problems(problem_id) ON DELETE CASCADE
+    TABLE "testcases" CONSTRAINT "testcases_problem_id_fkey" FOREIGN KEY (problem_id) REFERENCES problems(problem_id) ON DELETE CASCADE
+
+
+
+
+
+
+
+
+                                                  Table "public.submissions_with_problem"
+       Column        |            Type             | Collation | Nullable |                             Default
+---------------------+-----------------------------+-----------+----------+-----------------------------------------------------------------
+ submission_id       | bigint                      |           | not null | nextval('submissions_with_problem_submission_id_seq'::regclass)
+ problem_id          | bigint                      |           | not null |
+ submitted_by        | bigint                      |           | not null |
+ submission_status   | character varying(255)      |           | not null |
+ created_at          | timestamp without time zone |           | not null | CURRENT_TIMESTAMP
+ updated_at          | timestamp without time zone |           | not null | CURRENT_TIMESTAMP
+ submission_language | character varying(100)      |           | not null |
+ submitted_code      | text                        |           | not null |
+Indexes:
+    "submissions_with_problem_pkey" PRIMARY KEY, btree (submission_id)
+Check constraints:
+    "submissions_with_problem_submission_language_check" CHECK (submission_language::text = ANY (ARRAY['PYTHON'::character varying, 'C'::character varying, 'C++'::character varying, 'JAVA'::character varying, 'JAVASCRIPT'::character varying]::text[]))
+Foreign-key constraints:
+    "submissions_with_problem_problem_id_fkey" FOREIGN KEY (problem_id) REFERENCES problems(problem_id) ON DELETE CASCADE
+    "submissions_with_problem_submitted_by_fkey" FOREIGN KEY (submitted_by) REFERENCES users(user_id)
+Referenced by:
+    TABLE "submission_on_testcase" CONSTRAINT "submission_on_testcase_submission_id_fkey" FOREIGN KEY (submission_id) REFERENCES submissions_with_problem(submission_id) ON DELETE CASCADE
+
+
+
+
+
+
+
+
+
+                           Table "public.submission_on_testcase"
+      Column       |            Type             | Collation | Nullable |      Default
+-------------------+-----------------------------+-----------+----------+-------------------
+ submission_id     | bigint                      |           | not null |
+ testcase_id       | bigint                      |           | not null |
+ output            | text                        |           |          |
+ submission_status | character varying(255)      |           | not null |
+ created_at        | timestamp without time zone |           | not null | CURRENT_TIMESTAMP
+ updated_at        | timestamp without time zone |           | not null | CURRENT_TIMESTAMP
+Indexes:
+    "submission_on_testcase_pkey" PRIMARY KEY, btree (submission_id, testcase_id)
+Foreign-key constraints:
+    "submission_on_testcase_submission_id_fkey" FOREIGN KEY (submission_id) REFERENCES submissions_with_problem(submission_id) ON DELETE CASCADE
+    "submission_on_testcase_testcase_id_fkey" FOREIGN KEY (testcase_id) REFERENCES testcases(testcase_id) ON DELETE CASCADE
+
+
+
+
+
+
+
+
+
+
+                                               Table "public.testcases"
+     Column      |            Type             | Collation | Nullable |                    Default
+-----------------+-----------------------------+-----------+----------+------------------------------------------------
+ testcase_id     | bigint                      |           | not null | nextval('testcases_testcase_id_seq'::regclass)
+ problem_id      | bigint                      |           | not null |
+ created_by      | bigint                      |           | not null |
+ input           | text                        |           | not null |
+ expected_output | text                        |           | not null |
+ is_sample       | boolean                     |           |          | false
+ created_at      | timestamp without time zone |           | not null | CURRENT_TIMESTAMP
+ updated_at      | timestamp without time zone |           | not null | CURRENT_TIMESTAMP
+Indexes:
+    "testcases_pkey" PRIMARY KEY, btree (testcase_id)
+Foreign-key constraints:
+    "testcases_created_by_fkey" FOREIGN KEY (created_by) REFERENCES users(user_id)
+    "testcases_problem_id_fkey" FOREIGN KEY (problem_id) REFERENCES problems(problem_id) ON DELETE CASCADE
+Referenced by:
+    TABLE "submission_on_testcase" CONSTRAINT "submission_on_testcase_testcase_id_fkey" FOREIGN KEY (testcase_id) REFERENCES testcases(testcase_id) ON DELETE CASCADE
+
+
+
+
+
+

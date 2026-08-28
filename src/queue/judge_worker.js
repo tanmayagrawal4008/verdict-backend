@@ -39,14 +39,17 @@ async function processSubmission(job) {
     );
     return result;
   } catch (error) {
-    try {
-      await submissionService.update_submission_status_by_id(submissionId, "SYSTEM_ERROR");
-    } catch (statusError) {
-      console.error(`Could not update submission ${submissionId} status:`, statusError.message);
+    if (submissionId) {
+      try {
+        await submissionService.update_submission_status_by_id(submissionId, "SYSTEM_ERROR");
+      } catch (statusError) {
+        console.error(`Could not update submission ${submissionId} status:`, statusError.message);
+      }
     }
     throw error;
   }
 }
+
 
 const judgeWorker = new Worker("judge_queue", processSubmission, {
   connection: redisConnection,

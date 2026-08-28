@@ -5,27 +5,21 @@ const crypto = require("crypto");
 const dockerRunner = require("../docker/docker_runner");
 
 class CppCompiler {
-
     async cleanup(workDir) {
         if (workDir) {
-            await fs.rm(workDir, { recursive: true, force: true });
+            try {
+                await fs.rm(workDir, { recursive: true, force: true });
+            } catch (err) {
+                console.error("Cleanup error:", err.message);
+            }
         }
     }
 
     async compile(sourceCode) {
-
         const submissionId = crypto.randomUUID();
-
-        const workDir = path.join(
-            process.cwd(),
-            "src",
-            "judge",
-            "temp",
-            submissionId
-        );
+        const workDir = path.resolve(__dirname, "..", "temp", submissionId);
 
         try {
-
             // Create temporary directory
             await fs.mkdir(workDir, {
                 recursive: true
@@ -44,27 +38,22 @@ class CppCompiler {
 
             // Compile inside Docker
             const result = await dockerRunner.run({
-
                 image: "judge-cpp",
-
                 command: [
                     "g++",
+                    "-O2",
+                    "-std=c++17",
                     "/workspace/main.cpp",
                     "-o",
                     "/workspace/main"
                 ],
-
                 workDir,
-
                 timeout: 10000,
-
                 memoryLimit: "512m"
             });
 
             if (!result.success) {
-
                 await this.cleanup(workDir);
-
                 return {
                     success: false,
                     verdict: "COMPILATION_ERROR",
@@ -80,11 +69,8 @@ class CppCompiler {
                     "main"
                 )
             };
-
         } catch (error) {
-
             await this.cleanup(workDir);
-
             return {
                 success: false,
                 verdict: "COMPILATION_ERROR",
@@ -93,5 +79,6 @@ class CppCompiler {
         }
     }
 }
+
 
 module.exports = new CppCompiler();

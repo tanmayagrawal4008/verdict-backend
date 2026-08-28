@@ -20,10 +20,17 @@ class JudgeService {
     if (!Array.isArray(testCases) || testCases.length === 0) {
       throw new Error("At least one test case is required");
     }
-    if (!Number.isFinite(timeLimit) || timeLimit <= 0) {
+
+    const parsedTimeLimit = Number(timeLimit);
+    if (!Number.isFinite(parsedTimeLimit) || parsedTimeLimit <= 0) {
       throw new Error("timeLimit must be a positive number in milliseconds");
     }
-    if (!Number.isFinite(memoryLimit) || memoryLimit <= 0) {
+
+    const rawMemory = typeof memoryLimit === "string" && memoryLimit.toLowerCase().endsWith("m")
+      ? memoryLimit.slice(0, -1)
+      : memoryLimit;
+    const parsedMemoryLimit = Number(rawMemory);
+    if (!Number.isFinite(parsedMemoryLimit) || parsedMemoryLimit <= 0) {
       throw new Error("memoryLimit must be a positive number in megabytes");
     }
 
@@ -31,8 +38,8 @@ class JudgeService {
       submissionId,
       sourceCode,
       language: normalizedLanguage,
-      timeLimit,
-      memoryLimit,
+      timeLimit: parsedTimeLimit,
+      memoryLimit: parsedMemoryLimit,
       testCases: testCases.map((testCase, index) => {
         const testCaseId = testCase.testCaseId ?? testCase.testcase_id;
         const expectedOutput = testCase.expectedOutput ?? testCase.expected_output;
@@ -48,6 +55,7 @@ class JudgeService {
       }),
     };
   }
+
 
   async judgeSubmission(job) {
     const {

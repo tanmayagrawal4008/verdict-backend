@@ -5,7 +5,7 @@ const { sendSuccess } = require("./response");
 const problemService = new ProblemService();
 
 function getProblemId(value) {
-  if (!/^[1-9]\d*$/.test(String(value))) {
+  if (!/^[1-9]\d*$/.test(String(value ?? ""))) {
     throw new HttpError(400, "problemId must be a positive integer");
   }
   return String(value);
@@ -13,14 +13,33 @@ function getProblemId(value) {
 
 function assertProblemPayload(problem) {
   const requiredFields = ["title", "difficulty", "time_limit", "memory_limit", "statement"];
-  const missingField = requiredFields.find((field) => problem[field] === undefined || problem[field] === "");
-  if (missingField) throw new HttpError(400, `${missingField} is required`);
+  for (const field of requiredFields) {
+    const val = problem[field];
+    if (
+      val === undefined ||
+      val === null ||
+      val === "" ||
+      (typeof val === "string" && val.trim() === "")
+    ) {
+      throw new HttpError(400, `${field} is required`);
+    }
+  }
+
+  if (!Number.isInteger(Number(problem.difficulty))) {
+    throw new HttpError(400, "difficulty must be an integer");
+  }
+  if (!Number.isInteger(Number(problem.time_limit)) || Number(problem.time_limit) <= 0) {
+    throw new HttpError(400, "time_limit must be a positive integer");
+  }
+  if (!Number.isInteger(Number(problem.memory_limit)) || Number(problem.memory_limit) <= 0) {
+    throw new HttpError(400, "memory_limit must be a positive integer");
+  }
 }
 
 class ProblemController {
   async getProblems(req, res) {
     const problems = await problemService.get_problems();
-    return sendSuccess(res, 200, "Problems fetched successfully", problems);
+    return sendSuccess(res, 200, "Problems fetched successfully", problems || []);
   }
 
   async getProblemById(req, res) {
@@ -34,9 +53,15 @@ class ProblemController {
     assertProblemPayload(problem);
 
     const result = await problemService.create_problem(
-      problem.title, problem.difficulty, problem.time_limit, problem.memory_limit,
-      req.user.user_id, problem.statement, problem.input_formate,
-      problem.output_formate, problem.constraints,
+      typeof problem.title === "string" ? problem.title.trim() : problem.title,
+      Number(problem.difficulty),
+      Number(problem.time_limit),
+      Number(problem.memory_limit),
+      req.user.user_id,
+      problem.statement,
+      problem.input_formate ?? null,
+      problem.output_formate ?? null,
+      problem.constraints ?? null,
     );
     return sendSuccess(res, 201, "Problem created successfully", result.rows ? result.rows[0] : result);
   }
@@ -49,12 +74,21 @@ class ProblemController {
       throw new HttpError(403, "You can only update your own problem");
     }
 
-    const problem = { ...existingProblem, ...(req.body || {}) };
+    const updates = req.body || {};
+    const problem = { ...existingProblem, ...updates };
     assertProblemPayload(problem);
+
     const updatedProblem = await problemService.update_problem_by_id(
-      problem.title, problem.difficulty, problem.time_limit, problem.memory_limit,
-      existingProblem.created_by, problem.statement, problem.input_formate,
-      problem.output_formate, problem.constraints, problemId,
+      typeof problem.title === "string" ? problem.title.trim() : problem.title,
+      Number(problem.difficulty),
+      Number(problem.time_limit),
+      Number(problem.memory_limit),
+      existingProblem.created_by,
+      problem.statement,
+      problem.input_formate ?? null,
+      problem.output_formate ?? null,
+      problem.constraints ?? null,
+      problemId,
     );
     return sendSuccess(res, 200, "Problem updated successfully", updatedProblem);
   }
@@ -73,3 +107,4 @@ class ProblemController {
 }
 
 module.exports = ProblemController;
+

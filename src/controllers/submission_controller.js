@@ -7,7 +7,7 @@ const problemService = new ProblemService();
 const submissionService = new SubmissionService();
 
 function positiveId(value, name) {
-  if (!/^[1-9]\d*$/.test(String(value))) {
+  if (!/^[1-9]\d*$/.test(String(value ?? ""))) {
     throw new HttpError(400, `${name} must be a positive integer`);
   }
   return String(value);
@@ -17,10 +17,19 @@ class SubmissionController {
   async createSubmission(req, res) {
     const problemId = positiveId(req.params.problemId, "problemId");
     const { submitted_code, language } = req.body || {};
-    if (!submitted_code || !language) {
+    if (
+      !submitted_code ||
+      !language ||
+      typeof submitted_code !== "string" ||
+      typeof language !== "string" ||
+      !submitted_code.trim() ||
+      !language.trim()
+    ) {
       throw new HttpError(400, "submitted_code and language are required");
     }
-    if (language !== "CPP" && language !== "C++") {
+
+    const trimmedLanguage = language.trim();
+    if (trimmedLanguage !== "CPP" && trimmedLanguage !== "C++") {
       throw new HttpError(400, "Only C++ submissions are currently supported");
     }
 
@@ -28,7 +37,10 @@ class SubmissionController {
     if (!problem) throw new HttpError(404, "Problem not found");
 
     const submission = await submissionService.create_submission(
-      problemId, submitted_code, language, req.user.user_id,
+      problemId,
+      submitted_code,
+      trimmedLanguage,
+      req.user.user_id,
     );
     return sendSuccess(res, 201, "Submission created successfully", submission);
   }
@@ -45,3 +57,4 @@ class SubmissionController {
 }
 
 module.exports = SubmissionController;
+

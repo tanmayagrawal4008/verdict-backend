@@ -21,12 +21,18 @@ class SubmissionService {
       );
       return submission;
     } catch (error) {
-      await submissionModel.update_submission_status_by_id(submission.submission_id, "QUEUE_ERROR");
+      try {
+        await submissionModel.update_submission_status_by_id(submission.submission_id, "QUEUE_ERROR");
+      } catch (updateError) {
+        console.error(`Could not mark submission ${submission.submission_id} as QUEUE_ERROR:`, updateError.message);
+      }
       const queueError = new Error("Submission queue is temporarily unavailable");
       queueError.statusCode = 503;
+      queueError.status = 503;
       throw queueError;
     }
   }
+
 
   async update_submission_status_by_id(submissionId, status) {
     return submissionModel.update_submission_status_by_id(submissionId, status);

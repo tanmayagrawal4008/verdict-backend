@@ -16,13 +16,17 @@ class AuthenticationMiddleware {
         throw new HttpError(401, "Authorization header must use Bearer token");
       }
 
-      req.user = await authenticationService.varify_auth_token(token);
+      const verifyToken = authenticationService.verify_auth_token || authenticationService.varify_auth_token;
+      req.user = await verifyToken.call(authenticationService, token);
       return next();
     } catch (error) {
-      error.statusCode = 401;
+      if (!error.statusCode && !error.status) {
+        error.statusCode = 401;
+      }
       return next(error);
     }
   }
 }
 
 module.exports = AuthenticationMiddleware;
+

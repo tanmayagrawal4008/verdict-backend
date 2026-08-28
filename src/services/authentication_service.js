@@ -7,11 +7,12 @@ const {
   get_user_by_email,
 } = require("../models/authentication_model");
 
-const BCRYPT_HASH_KEY = 12;
+const BCRYPT_HASH_KEY = Number(process.env.BCRYPT_HASH_KEY) || 10;
 
 function serviceError(statusCode, message) {
   const error = new Error(message);
   error.statusCode = statusCode;
+  error.status = statusCode;
   return error;
 }
 
@@ -56,13 +57,18 @@ class AuthenticationService {
     );
   }
 
-  async varify_auth_token(accessToken) {
+  async verify_auth_token(accessToken) {
     try {
       return jwt.verify(accessToken, process.env.JWT_ACCESS_SECRET);
     } catch {
       throw serviceError(401, "Invalid or expired access token");
     }
   }
+
+  async varify_auth_token(accessToken) {
+    return this.verify_auth_token(accessToken);
+  }
+
 
   async refresh(refreshToken) {
     try {

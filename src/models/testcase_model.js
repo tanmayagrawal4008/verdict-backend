@@ -57,7 +57,7 @@ const get_user_by_testcase_id = async (testcase_id) => {
 
 const get_all_testcases_by_problem_id = async (problem_id) => {
   const query = `
-        SELECT testcase_id, problem_id, input, expected_output
+        SELECT testcase_id, problem_id, input, expected_output, is_sample, created_at, updated_at
         FROM testcases
         WHERE problem_id = $1
         ORDER BY testcase_id ASC;
@@ -91,4 +91,3 @@ module.exports = {
     get_all_testcases_by_problem_id,
     get_sample_testcases_by_problem_id
 }
-

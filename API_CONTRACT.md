@@ -161,6 +161,35 @@ GET /me/problems
 `GET /me/problems` requires an access token. These endpoints currently do not
 use query filters or pagination parameters.
 
+### Test case requests
+
+#### Create test case — `POST /problems/:problemId/testcases`
+
+Only the creator of the problem can add or view its test cases. `input` and
+`expected_output` must be strings; either may be an empty string when that is
+valid for the problem. Set `is_sample` to `true` only for a case intended to be
+shown as a sample.
+
+```json
+{
+  "input": "3\n1 2 3\n",
+  "expected_output": "6\n",
+  "is_sample": false
+}
+```
+
+#### Read test cases — `GET /problems/:problemId/testcases`
+
+Requires an access token and returns the test cases only to the creator of the
+problem. This endpoint is deliberately not public, so hidden judge cases are
+not exposed to solvers.
+
+#### Read sample test cases — `GET /problems/:problemId/sample-testcases`
+
+No authentication is required. This endpoint returns only test cases where
+`is_sample` is `true`, so the problem page can display their inputs and
+expected outputs without exposing hidden judge cases.
+
 ### Submission requests
 
 #### Create submission — `POST /problems/:problemId/submissions`
@@ -211,6 +240,9 @@ No body. Requires an access token.
 | `PATCH /problems/:problemId` | `200` | `Problem updated successfully` | `{ problem_id, created_at, updated_at }` |
 | `DELETE /problems/:problemId` | `200` | `Problem deleted successfully` | `{ problem_id, created_at, updated_at }` |
 | `GET /me/problems` | `200` | `Your problems fetched successfully` | `Problem[]` |
+| `GET /problems/:problemId/testcases` | `200` | `Test cases fetched successfully` | `Testcase[]` |
+| `POST /problems/:problemId/testcases` | `201` | `Test case created successfully` | `Testcase` |
+| `GET /problems/:problemId/sample-testcases` | `200` | `Sample test cases fetched successfully` | `Testcase[]` |
 
 ```ts
 type Problem = {
@@ -224,6 +256,16 @@ type Problem = {
   input_formate: string | null;
   output_formate: string | null;
   constraints: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+type Testcase = {
+  testcase_id: string;
+  problem_id: string;
+  input: string;
+  expected_output: string;
+  is_sample: boolean;
   created_at: string;
   updated_at: string;
 };
@@ -250,6 +292,8 @@ type SubmissionSummary = {
 
 type Submission = SubmissionSummary & {
   submitted_code: string;
+  // One-based position of the first non-accepted test case, or null when unavailable.
+  failed_testcase_number: string | null;
 };
 
 type SubmissionStatus =

@@ -59,7 +59,20 @@ const get_submissions_by_user_id = async (user_id) => {
 const get_submission_by_id = async (submission_id) => {
   const query = `
         SELECT submission_id, problem_id, submission_status, submitted_code,
-               submission_language, submitted_by, created_at, updated_at
+               submission_language, submitted_by, created_at, updated_at,
+               (
+                 SELECT (
+                   SELECT COUNT(*)
+                   FROM testcases AS earlier_testcase
+                   WHERE earlier_testcase.problem_id = submissions_with_problem.problem_id
+                     AND earlier_testcase.testcase_id < result.testcase_id
+                 ) + 1
+                 FROM submission_on_testcase AS result
+                 WHERE result.submission_id = submissions_with_problem.submission_id
+                   AND result.submission_status <> 'ACCEPTED'
+                 ORDER BY result.testcase_id ASC
+                 LIMIT 1
+               ) AS failed_testcase_number
         FROM submissions_with_problem
         WHERE submission_id = $1;
     `;

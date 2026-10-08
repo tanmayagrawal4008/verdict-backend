@@ -16,7 +16,7 @@ router.post(
   asyncHandler(authenticationMiddleware.verifyAccessToken.bind(authenticationMiddleware)),
   asyncHandler(controller.logout.bind(controller)),
 );
-
 router.use(errorMiddleware);
-
 module.exports = router;
+
+

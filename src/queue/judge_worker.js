@@ -53,7 +53,7 @@ async function processSubmission(job) {
 
 const judgeWorker = new Worker("judge_queue", processSubmission, {
   connection: redisConnection,
-  concurrency: 2,
+  concurrency: 1,
 });
 
 judgeWorker.on("completed", (job, result) => {
